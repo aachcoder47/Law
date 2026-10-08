@@ -24,6 +24,8 @@ class Settings(BaseModel):
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    QWEN_API_KEY: str = os.getenv("QWEN_API_KEY", "")
+    MINIMAX_API_KEY: str = os.getenv("MINIMAX_API_KEY", "")
     
     # Legal API Keys
     INDIAN_KANOON_API_KEY: str = os.getenv("INDIAN_KANOON_API_KEY", "")

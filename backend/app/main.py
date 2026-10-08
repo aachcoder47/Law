@@ -18,6 +18,7 @@ from app.agents.cross_exam_agent import cross_exam_agent
 from app.engine.court_fee_calculator import court_fee_calculator, CourtFeeCalculationRequest
 from app.engine.font_converter import font_engine, FontConvertRequest
 from app.engine.drafting_templates import drafting_engine
+from app.engine.indian_law_library import indian_law_library_engine
 
 
 
@@ -56,6 +57,8 @@ class ApiKeyUpdateRequest(BaseModel):
     anthropic_key: Optional[str] = None
     deepseek_key: Optional[str] = None
     groq_key: Optional[str] = None
+    qwen_key: Optional[str] = None
+    minimax_key: Optional[str] = None
     indian_kanoon_key: Optional[str] = None
     ollama_url: Optional[str] = None
 
@@ -76,11 +79,13 @@ async def health_check():
         "local_only_mode": model_router.local_only,
         "active_connectors": [c.name for c in hybrid_search_engine.connectors],
         "available_models": {
+            "consensus": True,
+            "claude": bool(settings.ANTHROPIC_API_KEY),
+            "chatgpt": bool(settings.OPENAI_API_KEY),
             "gemini": bool(settings.GEMINI_API_KEY),
-            "groq": bool(settings.GROQ_API_KEY),
-            "openai": bool(settings.OPENAI_API_KEY),
-            "anthropic": bool(settings.ANTHROPIC_API_KEY),
             "deepseek": bool(settings.DEEPSEEK_API_KEY),
+            "qwen": bool(settings.QWEN_API_KEY or settings.GROQ_API_KEY),
+            "minimax": bool(settings.MINIMAX_API_KEY),
             "ollama": bool(settings.OLLAMA_BASE_URL),
             "local_grounded_engine": True
         },
@@ -90,6 +95,8 @@ async def health_check():
             "openai": bool(settings.OPENAI_API_KEY),
             "anthropic": bool(settings.ANTHROPIC_API_KEY),
             "deepseek": bool(settings.DEEPSEEK_API_KEY),
+            "qwen": bool(settings.QWEN_API_KEY),
+            "minimax": bool(settings.MINIMAX_API_KEY),
             "indian_kanoon": bool(settings.INDIAN_KANOON_API_KEY)
         }
     }
@@ -107,6 +114,10 @@ async def update_api_keys(req: ApiKeyUpdateRequest):
         settings.update_key("DEEPSEEK_API_KEY", req.deepseek_key.strip())
     if req.groq_key is not None:
         settings.update_key("GROQ_API_KEY", req.groq_key.strip())
+    if req.qwen_key is not None:
+        settings.update_key("QWEN_API_KEY", req.qwen_key.strip())
+    if req.minimax_key is not None:
+        settings.update_key("MINIMAX_API_KEY", req.minimax_key.strip())
     if req.indian_kanoon_key is not None:
         settings.update_key("INDIAN_KANOON_API_KEY", req.indian_kanoon_key.strip())
     if req.ollama_url is not None:
@@ -121,6 +132,8 @@ async def update_api_keys(req: ApiKeyUpdateRequest):
             "openai": bool(settings.OPENAI_API_KEY),
             "anthropic": bool(settings.ANTHROPIC_API_KEY),
             "deepseek": bool(settings.DEEPSEEK_API_KEY),
+            "qwen": bool(settings.QWEN_API_KEY),
+            "minimax": bool(settings.MINIMAX_API_KEY),
             "indian_kanoon": bool(settings.INDIAN_KANOON_API_KEY)
         }
     }
@@ -865,3 +878,258 @@ async def get_legal_ecosystem():
             }
         ]
     }
+
+
+# ============================================================================
+# MULTI-MODEL AI CONSENSUS ENGINE (Claude 5, ChatGPT, Gemini, DeepSeek, Qwen, MiniMax)
+# ============================================================================
+
+class ConsensusQueryRequest(BaseModel):
+    query: str
+    case_context: Optional[str] = ""
+    doc_ids: Optional[List[str]] = []
+    language: Optional[str] = "en"
+
+@app.post("/api/v1/consensus/query")
+async def run_consensus_query(req: ConsensusQueryRequest):
+    """
+    Executes cross-model arbitration across Claude, ChatGPT, Gemini, DeepSeek, Qwen, and MiniMax.
+    Returns unanimous agreement points, divergences, verified statutes, and supreme synthesis.
+    """
+    additional_context = ""
+    if req.doc_ids:
+        docs = [user_document_connector.documents.get(did) for did in req.doc_ids if did in user_document_connector.documents]
+        doc_texts = [f"--- Exhibit: {d.title} ({d.category}) ---\n{d.content[:1500]}" for d in docs]
+        additional_context = "\n\nAttached Case Exhibits:\n" + "\n".join(doc_texts)
+
+    full_prompt = f"Legal Issue / Query:\n{req.query}\n\nFactual Context:\n{req.case_context}\n{additional_context}"
+    system_prompt = (
+        "You are the Supreme Indian Legal Consensus Arbiter. "
+        "Synthesize an authoritative, cross-verified legal judgment addressing statutory mandates, "
+        "Constitution Bench rulings, and 2024 Sanhita transitions. "
+        "If requested in Hindi, provide in high-caliber formal Legal Hindi."
+    )
+    if req.language in ["hi", "hindi"]:
+        system_prompt += " Provide complete legal analysis in formal Legal Hindi (हिंदी)."
+
+    result = await model_router.generate_consensus_response(full_prompt, system_prompt)
+    return result
+
+
+# ============================================================================
+# DEDICATED PDF UPLOAD & LEGAL PROMPT ENGINE (Cross-Exam, Contradictions, Bail, Appeals)
+# ============================================================================
+
+class PdfPromptRequest(BaseModel):
+    doc_id: Optional[str] = None
+    doc_ids: Optional[List[str]] = []
+    prompt_type: str = "cross_examination" # cross_examination, contradictions, bail_grounds, quashing_grounds, appeal_grounds, custom
+    witness_type: Optional[str] = "auto"   # investigating_officer, eye_witness, complainant, doctor, seizure_witness
+    custom_prompt: Optional[str] = ""
+    model_preference: Optional[str] = "consensus" # consensus, claude, openai, gemini, deepseek, qwen, minimax
+    language: Optional[str] = "hi"         # en or hi
+
+@app.post("/api/v1/pdf/prompt")
+async def execute_pdf_prompt(req: PdfPromptRequest):
+    """
+    Executes specialized courtroom and defense prompt engineering directly on uploaded PDF(s).
+    Supports Cross-Examination, Contradictions, Bail Grounds, Quashing Grounds, and Custom Legal Prompts.
+    """
+    target_docs = []
+    if req.doc_ids and len(req.doc_ids) > 0:
+        for did in req.doc_ids:
+            d = user_document_connector.documents.get(did)
+            if d: target_docs.append(d)
+    elif req.doc_id:
+        d = user_document_connector.documents.get(req.doc_id)
+        if d: target_docs.append(d)
+
+    if not target_docs:
+        raise HTTPException(status_code=400, detail="No valid PDF documents found. Please upload or select a document.")
+
+    doc_titles = [d.title for d in target_docs]
+    combined_content = "\n\n".join([f"=== DOCUMENT: {d.title} (Type: {d.category}, Filename: {d.filename}) ===\n{d.content[:4500]}" for d in target_docs])
+
+    lang = req.language or "hi"
+    is_hindi = lang in ["hi", "hindi"]
+
+    # Build prompt based on prompt_type
+    if req.prompt_type == "cross_examination":
+        w_title = req.witness_type or "Investigating Officer"
+        if is_hindi:
+            system_prompt = (
+                "आप भारतीय सर्वोच्च न्यायालय एवं उच्च न्यायालय के वरिष्ठ विधिक अधिवक्ता और शीर्ष जिरह विशेषज्ञ हैं। "
+                "प्रस्तुत केस डायरी, एफआईआर, चार्जशीट एवं बयानों का गहन विश्लेषण करके गवाह की साख खंडित करने (धारा 145/146/155 BSA / IEA) "
+                "हेतु अचूक कोर्टरूम जिरह प्रश्न बैंक तैयार करें।"
+            )
+            user_prompt = f"""
+प्रस्तुत केस दस्तावेज: {', '.join(doc_titles)}
+गवाह का प्रकार: {w_title}
+
+केस साक्ष्य सामग्री:
+{combined_content}
+
+कृपया निम्नलिखित 5-चरणीय विस्तृत जिरह रणनीति (Cross-Examination Strategy) तैयार करें:
+1. 🎯 जिरह का मुख्य उद्देश्य एवं अभियोजन के दावों की कमजोरी (Prosecution Vulnerabilities)
+2. ⏱️ समय-चक्र, घटना स्थल नक्शा (Spot Map) एवं एफआईआर विलंब पर तीखे प्रश्न
+3. 📑 धारा 161 (अब धारा 180 BNSS) बयान व एफआईआर में परस्पर विरोधाभास व चूक (Contradictions & Omissions under Sec 145 BSA)
+4. 🩺 भौतिक/चिकित्सीय साक्ष्य (MLC / Recovery Memo / Panch) के संबंध में गवाह से कबूलवाने योग्य सवाल (Trap Questions)
+5. 🛡️ अभियुक्त के निर्दोष होने का सिद्धांत (Defense Hypothesis) सिद्ध करने हेतु अंतिम सुझाव (Material Suggestions)
+"""
+        else:
+            system_prompt = (
+                "You are a master Indian trial advocate and Senior Counsel. "
+                "Analyze the uploaded criminal/civil case exhibits and construct a devastating courtroom cross-examination question bank "
+                "under Sections 145, 146, and 155 of the Bharatiya Sakshya Adhiniyam, 2023 (Indian Evidence Act, 1872)."
+            )
+            user_prompt = f"""
+Case Exhibits: {', '.join(doc_titles)}
+Target Witness: {w_title}
+
+Document Contents:
+{combined_content}
+
+Formulate an elite 5-phase courtroom trial cross-examination plan:
+1. Primary Cross-Examination Objectives & Prosecution Vulnerabilities
+2. Timeline, FIR Delay, and Scene of Crime (Spot Map) Discrepancies
+3. Confrontation with Section 161 / 180 BNSS Statements (Contradictions under Sec 145 BSA)
+4. Forensic, Medico-Legal, and Seizure Panchnama Impeachment
+5. Concluding Material Defense Suggestions to Affirm Innocence
+"""
+
+    elif req.prompt_type == "contradictions":
+        system_prompt = "You are a judicial magistrate and senior criminal defense lawyer specializing in forensic contradiction analysis."
+        user_prompt = f"""
+Analyze the uploaded document(s): {', '.join(doc_titles)}
+Extract every material contradiction, omission, and inconsistency between the FIR, witness statements, medical evidence, and seizure memos.
+Classify each into:
+1. Material Discrepancies going to root of the case (State of Rajasthan v. Kalki)
+2. Significant Omissions amounting to contradiction under Sec 145 BSA / 145 IEA
+3. Inconsistencies between ocular evidence and medical/forensic findings
+4. Strategic impact on benefit of doubt for the accused.
+
+Document Text:
+{combined_content}
+"""
+
+    elif req.prompt_type == "bail_grounds":
+        system_prompt = "You are an elite Indian criminal appellate advocate drafting anticipatory/regular bail grounds under BNSS Sections 482 / 483."
+        user_prompt = f"""
+Draft comprehensive, winning grounds for Bail based strictly on the uploaded record: {', '.join(doc_titles)}
+Include:
+1. Absence of custodial interrogation requirement
+2. Material delay in lodging FIR and absence of independent eye-witnesses
+3. Parity with co-accused (if applicable) and clean antecedents
+4. Constitutional safeguards under Article 21 (Arnesh Kumar & Satender Kumar Antil principles)
+5. Proposed stringent undertaking to cooperate with investigation.
+
+Record:
+{combined_content}
+"""
+
+    elif req.prompt_type == "quashing_grounds":
+        system_prompt = "You are a High Court Senior Advocate drafting an FIR Quashing Petition under BNSS Section 528 (CrPC Section 482)."
+        user_prompt = f"""
+Evaluate the uploaded case materials: {', '.join(doc_titles)}
+Formulate grounds for quashing the FIR / Charge Sheet applying the 7 landmark categories of State of Haryana v. Bhajan Lal (1992):
+1. Whether allegations disclose a cognizable offense
+2. Whether dispute is purely of a civil nature given a criminal color
+3. Express legal bar under applicable enactment
+4. Manifest malice and oblique motive of complainant.
+
+Record:
+{combined_content}
+"""
+
+    else:
+        # Custom prompt
+        c_prompt = req.custom_prompt or "Analyze this legal document and provide strategic insights."
+        system_prompt = "You are an authoritative Indian Legal Research Scholar and Senior Advocate."
+        user_prompt = f"""
+Client Legal Instruction / Prompt:
+{c_prompt}
+
+Uploaded Legal Document(s): {', '.join(doc_titles)}
+{combined_content}
+
+Provide an attorney-grade, structured answer citing relevant statutory provisions (BNS/BNSS/BSA/CPC), landmark Supreme Court precedents, and practical steps.
+"""
+
+    # Dispatch to Model Router
+    model_pref = req.model_preference or "consensus"
+    result = await model_router.generate_response(
+        prompt=user_prompt,
+        system_prompt=system_prompt,
+        model_preference=model_pref
+    )
+
+    return {
+        "success": True,
+        "prompt_type": req.prompt_type,
+        "witness_type": req.witness_type,
+        "documents_included": doc_titles,
+        "model_used": result.get("model", model_pref),
+        "provider": result.get("provider", "NyayaAI Engine"),
+        "response_text": result.get("text", ""),
+        "consensus_details": result.get("consensus_details")
+    }
+
+
+# ============================================================================
+# COMPLETE INDIAN LAW LIBRARY ENDPOINTS
+# ============================================================================
+
+@app.get("/api/v1/library/acts")
+async def list_library_acts():
+    """Returns the catalog of all Bare Acts in the Indian Law Library."""
+    return {"acts": indian_law_library_engine.list_acts()}
+
+@app.get("/api/v1/library/acts/{act_id}")
+async def get_act_details(act_id: str):
+    """Returns sections, chapters, and summary of a specific Bare Act."""
+    act = indian_law_library_engine.get_act_details(act_id)
+    if not act:
+        raise HTTPException(status_code=404, detail="Bare Act not found in library.")
+    return {"act": act}
+
+@app.get("/api/v1/library/comparisons")
+async def get_library_comparisons():
+    """Returns the side-by-side section comparisons across Indian Law."""
+    return {"comparisons": indian_law_library_engine.get_section_comparisons()}
+
+@app.get("/api/v1/library/search")
+async def search_library(query: str):
+    """Searches across sections, titles, and punishments in the Indian Law Library."""
+    results = indian_law_library_engine.search_library(query)
+    return {"query": query, "results": results}
+
+
+# ============================================================================
+# DEDICATED CASE NUMBER & CNR LOOKUP ENDPOINTS (Indian Kanoon & eCourts)
+# ============================================================================
+
+from app.engine.case_lookup import case_lookup_engine
+
+class CaseLookupRequest(BaseModel):
+    query: str
+    court: Optional[str] = "all"
+    case_year: Optional[str] = ""
+
+@app.post("/api/v1/cases/lookup")
+async def lookup_case(req: CaseLookupRequest):
+    """
+    Looks up full case details, CNR number, bench, coram, ratio decidendi,
+    and Indian Kanoon / e-Courts records by Case Number, Citation, CNR, or Title.
+    """
+    res = await case_lookup_engine.search_live_kanoon_or_ai(
+        req.query,
+        court=req.court or "all",
+        case_year=req.case_year or ""
+    )
+    return res
+
+@app.get("/api/v1/cases/sample")
+async def get_sample_cases():
+    """Returns catalog of pre-indexed landmark Indian cases for quick lookup."""
+    return {"cases": [c.model_dump() for c in case_lookup_engine.catalog]}
+

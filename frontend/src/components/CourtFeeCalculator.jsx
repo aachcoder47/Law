@@ -9,8 +9,8 @@ const API_BASE = "http://127.0.0.1:8000/api/v1";
 
 export default function CourtFeeCalculator() {
   const [states, setStates] = useState([
-    "Delhi", "Maharashtra", "Uttar Pradesh", "Rajasthan",
-    "Karnataka", "West Bengal", "Tamil Nadu", "Punjab & Haryana"
+    "Delhi", "Maharashtra", "Uttar Pradesh", "Madhya Pradesh", "Chhattisgarh",
+    "Rajasthan", "Karnataka", "West Bengal", "Tamil Nadu", "Punjab & Haryana"
   ]);
   const [caseTypes, setCaseTypes] = useState([
     "Money Suit / Recovery",
@@ -174,6 +174,27 @@ export default function CourtFeeCalculator() {
                 <option key={st} value={st} style={{ background: '#0D1527', color: '#FFF' }}>{st}</option>
               ))}
             </select>
+            {/* Quick State Chips */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+              {["Madhya Pradesh", "Chhattisgarh", "Delhi", "Maharashtra", "Uttar Pradesh", "Rajasthan"].map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setSelectedState(st)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '0.72rem',
+                    borderRadius: '4px',
+                    border: selectedState === st ? '1px solid var(--gold-primary)' : '1px solid var(--border-subtle)',
+                    background: selectedState === st ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                    color: selectedState === st ? 'var(--gold-light)' : 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {st === "Madhya Pradesh" ? "🏛️ MP (Jabalpur)" : st === "Chhattisgarh" ? "🏛️ CG (Bilaspur)" : st}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Case / Plaint Type */}

@@ -10,6 +10,9 @@ import {
 import CourtFeeCalculator from './components/CourtFeeCalculator';
 import DraftingFontStudio from './components/DraftingFontStudio';
 import LegalEcosystemHub from './components/LegalEcosystemHub';
+import PdfPromptStudio from './components/PdfPromptStudio';
+import IndianLawLibraryCompare from './components/IndianLawLibraryCompare';
+import MultiModelConsensusHub from './components/MultiModelConsensusHub';
 
 const API_BASE = "http://127.0.0.1:8000/api/v1";
 
@@ -74,6 +77,8 @@ export default function App() {
     openai_key: '',
     anthropic_key: '',
     deepseek_key: '',
+    qwen_key: '',
+    minimax_key: '',
     indian_kanoon_key: '',
     ollama_url: 'http://localhost:11434'
   });
@@ -693,12 +698,13 @@ export default function App() {
         <div style={{ maxWidth: '1400px', margin: '14px auto 0', display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px', overflowX: 'auto' }}>
           {[
             { id: 'research', label: 'Legal Research & Memo', icon: Search },
-            { id: 'calculator', label: 'Court Fee Calculator (कोर्ट फीस)', icon: Calculator },
-            { id: 'drafting', label: 'Drafting & Font Studio (ड्राफ्टिंग)', icon: Type },
-            { id: 'documents', label: `Case Dossier & Evidence (${uploadedDocs.length})`, icon: UploadCloud },
-            { id: 'transitions', label: '2024 Sanhita Matrix', icon: Landmark },
-            { id: 'ecosystem', label: 'Legal AI Ecosystem', icon: Globe },
-            { id: 'compare', label: 'Case Comparator', icon: ArrowRightLeft },
+            { id: 'pdf_studio', label: '🎯 PDF Prompt & Cross-Exam', icon: Target },
+            { id: 'consensus', label: '🏛️ Multi-Model AI Consensus', icon: Sparkles },
+            { id: 'library_compare', label: '📜 Indian Law Library & Compare', icon: BookOpen },
+            { id: 'calculator', label: '⚖️ Court Fee Calculator (CG & MP)', icon: Calculator },
+            { id: 'drafting', label: '✍️ Drafting & Font Studio', icon: Type },
+            { id: 'documents', label: `📁 Case Dossier (${uploadedDocs.length})`, icon: UploadCloud },
+            { id: 'ecosystem', label: '🌐 AI Ecosystem', icon: Globe },
             { id: 'history', label: `Saved (${savedMemos.length})`, icon: Bookmark }
           ].map(tab => {
 
@@ -844,10 +850,10 @@ export default function App() {
                 />
               </div>
 
-              {/* Groq */}
+              {/* Groq / Qwen */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--gold-light)' }}>Groq API Key (Ultra-Fast):</label>
+                  <label style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--gold-light)' }}>Groq / Qwen API Key:</label>
                   <span style={{ fontSize: '0.7rem', color: backendStatus.keys_configured?.groq ? '#10B981' : '#94A3B8' }}>
                     {backendStatus.keys_configured?.groq ? '✓ Active' : 'Not configured'}
                   </span>
@@ -857,6 +863,40 @@ export default function App() {
                   placeholder="gsk_..."
                   value={apiKeys.groq_key}
                   onChange={(e) => setApiKeys({ ...apiKeys, groq_key: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', background: '#091122', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: '#FFF', fontSize: '0.82rem' }}
+                />
+              </div>
+
+              {/* Qwen Direct */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--gold-light)' }}>Qwen 2.5 Max (DashScope) Key:</label>
+                  <span style={{ fontSize: '0.7rem', color: backendStatus.keys_configured?.qwen ? '#10B981' : '#94A3B8' }}>
+                    {backendStatus.keys_configured?.qwen ? '✓ Active' : 'Not configured'}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="sk-..."
+                  value={apiKeys.qwen_key}
+                  onChange={(e) => setApiKeys({ ...apiKeys, qwen_key: e.target.value })}
+                  style={{ width: '100%', padding: '8px 12px', background: '#091122', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: '#FFF', fontSize: '0.82rem' }}
+                />
+              </div>
+
+              {/* MiniMax */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--gold-light)' }}>MiniMax-01 API Key:</label>
+                  <span style={{ fontSize: '0.7rem', color: backendStatus.keys_configured?.minimax ? '#10B981' : '#94A3B8' }}>
+                    {backendStatus.keys_configured?.minimax ? '✓ Active' : 'Not configured'}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="eyJhbGciOi... (from api.minimax.chat)"
+                  value={apiKeys.minimax_key}
+                  onChange={(e) => setApiKeys({ ...apiKeys, minimax_key: e.target.value })}
                   style={{ width: '100%', padding: '8px 12px', background: '#091122', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: '#FFF', fontSize: '0.82rem' }}
                 />
               </div>
@@ -1421,6 +1461,21 @@ export default function App() {
             )}
 
           </div>
+        )}
+
+        {/* ================= TAB: PDF PROMPT & CROSS-EXAM STUDIO ================= */}
+        {activeTab === 'pdf_studio' && (
+          <PdfPromptStudio uploadedDocs={uploadedDocs} onDocUploaded={fetchUploadedDocs} />
+        )}
+
+        {/* ================= TAB: MULTI-MODEL CONSENSUS ARBITER ================= */}
+        {activeTab === 'consensus' && (
+          <MultiModelConsensusHub />
+        )}
+
+        {/* ================= TAB: INDIAN LAW LIBRARY & COMPARE ================= */}
+        {activeTab === 'library_compare' && (
+          <IndianLawLibraryCompare />
         )}
 
         {/* ================= TAB 2: COURT FEE CALCULATOR (कोर्ट फीस कैलकुलेटर) ================= */}

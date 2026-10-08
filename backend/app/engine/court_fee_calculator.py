@@ -270,6 +270,62 @@ STATES_CONFIG = {
             "Stay / Interim Application": 20.0,
             "Execution Petition": 100.0
         }
+    },
+    "Chhattisgarh": {
+        "name": "State of Chhattisgarh",
+        "act": "Chhattisgarh Court-Fees Act & High Court of Chhattisgarh (Bilaspur) Rules",
+        "vakalatnama_stamp": 25.0,
+        "clerk_stamp": 5.0,
+        "process_fee_per_respondent": 25.0,
+        "slabs": [
+            {"upto": 10000, "rate": 0.065, "base": 0},
+            {"upto": 50000, "rate": 0.05, "base": 650},
+            {"upto": 100000, "rate": 0.04, "base": 2650},
+            {"upto": 500000, "rate": 0.03, "base": 4650},
+            {"upto": 1000000, "rate": 0.02, "base": 16650},
+            {"upto": float('inf'), "rate": 0.01, "base": 26650}
+        ],
+        "max_fee": 250000.0,
+        "fixed_fees": {
+            "Declaration without Consequential Relief": 250.0,
+            "Permanent Injunction": 150.0,
+            "Mandatory Injunction": 150.0,
+            "Writ Petition (Art 226)": 500.0,
+            "Caveat Application (Sec 148A CPC)": 100.0,
+            "Anticipatory Bail Application": 50.0,
+            "Regular Bail Application": 50.0,
+            "Matrimonial Petition (Divorce/RCR)": 150.0,
+            "Stay / Interim Application": 25.0,
+            "Execution Petition": 100.0
+        }
+    },
+    "Madhya Pradesh": {
+        "name": "State of Madhya Pradesh",
+        "act": "Court Fees Act, 1870 (as applicable in Madhya Pradesh & High Court of MP, Jabalpur Rules)",
+        "vakalatnama_stamp": 30.0,
+        "clerk_stamp": 5.0,
+        "process_fee_per_respondent": 25.0,
+        "slabs": [
+            {"upto": 10000, "rate": 0.07, "base": 0},
+            {"upto": 50000, "rate": 0.055, "base": 700},
+            {"upto": 100000, "rate": 0.04, "base": 2900},
+            {"upto": 500000, "rate": 0.03, "base": 4900},
+            {"upto": 1000000, "rate": 0.02, "base": 16900},
+            {"upto": float('inf'), "rate": 0.015, "base": 26900}
+        ],
+        "max_fee": 300000.0,
+        "fixed_fees": {
+            "Declaration without Consequential Relief": 250.0,
+            "Permanent Injunction": 150.0,
+            "Mandatory Injunction": 200.0,
+            "Writ Petition (Art 226)": 500.0,
+            "Caveat Application (Sec 148A CPC)": 100.0,
+            "Anticipatory Bail Application": 50.0,
+            "Regular Bail Application": 50.0,
+            "Matrimonial Petition (Divorce/RCR)": 200.0,
+            "Stay / Interim Application": 25.0,
+            "Execution Petition": 150.0
+        }
     }
 }
 
